@@ -32,14 +32,6 @@ class PusaApp extends StatelessWidget {
           elevation: 0,
           centerTitle: false,
         ),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(22),
-            side: const BorderSide(color: Color(0xFFE9EDE6)),
-          ),
-        ),
         fontFamily: 'Roboto',
       ),
       home: PusaShell(backendConfigured: backendConfigured),
