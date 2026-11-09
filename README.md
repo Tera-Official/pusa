@@ -22,6 +22,7 @@ Business accounting, Social Pots, Swift Credit, WhatsApp assistant, gamification
 
 - **Web/PWA:** Next.js + TypeScript (repository root)
 - **Mobile:** Flutter + Dart (Android-first, under `apps/mobile`)
+- **Mobile:** Flutter + Dart (Android-first, under `apps/mobile`)
 - **Database and authentication:** Supabase (PostgreSQL, Auth, Row Level Security)
 - **Hosting:** Vercel
 - **Payments:** One provider integration first, subject to commercial access and legal review
