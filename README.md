@@ -20,7 +20,8 @@ Business accounting, Social Pots, Swift Credit, WhatsApp assistant, gamification
 
 ## Initial technology direction
 
-- **Web/PWA:** Next.js + TypeScript
+- **Web/PWA:** Next.js + TypeScript (repository root)
+- **Mobile:** Flutter + Dart (Android-first, under `apps/mobile`)
 - **Database and authentication:** Supabase (PostgreSQL, Auth, Row Level Security)
 - **Hosting:** Vercel
 - **Payments:** One provider integration first, subject to commercial access and legal review
@@ -43,7 +44,7 @@ The implementation should begin as a modular monolith. Financial posting and all
 
 ```
 apps/
-  web/                 # Next.js responsive web app / PWA
+  mobile/              # Flutter Android/iOS client
 packages/
   domain/              # Financial domain types and allocation rules
 supabase/
@@ -57,7 +58,7 @@ docs/
 
 ## Local development
 
-Setup instructions will be added with the application scaffold. Copy `.env.example` to `.env.local` and use development-only credentials. Never commit secrets.
+For Android setup, device testing, hot reload and APK builds, see [apps/mobile/README.md](apps/mobile/README.md). Copy `.env.example` to `.env.local` and use development-only credentials. Never commit secrets.
 
 ## Project documents
 
