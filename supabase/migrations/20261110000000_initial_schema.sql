@@ -207,7 +207,6 @@ create index pockets_user_idx on public.pockets(user_id);
 create index provider_events_intent_idx on public.provider_events(payment_intent_id);
 create index provider_events_processed_transaction_idx on public.provider_events(processed_transaction_id);
 create index provider_events_user_idx on public.provider_events(user_id);
-create index ledger_transactions_user_created_idx2 on public.ledger_transactions(user_id,created_at desc);
 
 create or replace function public.reject_financial_row_mutation()
 returns trigger language plpgsql set search_path = public as $$
