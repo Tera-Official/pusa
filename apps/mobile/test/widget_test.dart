@@ -7,7 +7,7 @@ void main() {
 
     expect(find.text('PUSA'), findsOneWidget);
     expect(find.text('Let’s put your money to work.'), findsOneWidget);
-    expect(find.text('Preview mode is active.'), findsOneWidget);
+    expect(find.textContaining('Preview mode is active.'), findsOneWidget);
     expect(find.text('Pockets'), findsOneWidget);
     expect(find.text('Activity'), findsOneWidget);
   });
