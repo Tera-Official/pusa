@@ -122,7 +122,7 @@ class DashboardScreen extends StatelessWidget {
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: const Color(0xFFF2E2B2)),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.info_outline_rounded, color: Color(0xFF946B16), size: 19),
