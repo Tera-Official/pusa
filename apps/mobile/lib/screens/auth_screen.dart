@@ -63,7 +63,7 @@ class _AuthScreenState extends State<AuthScreen> {
       await action();
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = e.message);
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _error = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
