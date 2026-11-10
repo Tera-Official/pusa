@@ -69,5 +69,6 @@ The live project has been provisioned with these Supabase migrations:
 - `validate_deposit_intent_and_allocation_rules`
 - `tighten_privileges_and_add_indexes`
 - `make_provider_event_client_access_explicitly_denied`
+- `allow_internal_pocket_ledger_link_initialization` (fix discovered by transactional allocation smoke test)
 
 The repository's `supabase/migrations/20261110000000_initial_schema.sql` is the consolidated fresh-environment baseline. Future schema changes must be added as new timestamped SQL migrations and applied to the Pusa project.
