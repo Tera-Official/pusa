@@ -46,7 +46,7 @@ class DashboardScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 5),
-            CircleAvatar(
+            const CircleAvatar(
               radius: 20,
               backgroundColor: const Color(0xFFE7EEDC),
               child: const Text('TT', style: TextStyle(
@@ -100,7 +100,7 @@ class DashboardScreen extends StatelessWidget {
                 style: TextStyle(color: Color(0xFFB9C4D0), fontSize: 12)),
               const SizedBox(height: 23),
               Row(children: [
-                Expanded(child: _SummaryMetric(
+                const Expanded(child: _SummaryMetric(
                   label: 'THIS MONTH', value: '+35,000 XAF',
                   icon: Icons.trending_up_rounded,
                 )),
