@@ -15,7 +15,7 @@ Future<void> main() async {
   if (backendConfigured) {
     await Supabase.initialize(
       url: supabaseUrl,
-      anonKey: supabaseAnonKey,
+      publishableKey: supabaseAnonKey,
     );
   }
 
