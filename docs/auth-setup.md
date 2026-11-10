@@ -25,7 +25,7 @@ The app uses Supabase Auth phone authentication. SMS delivery will not work unti
 6. Keep production credentials in Supabase's provider settings; never put SMS-provider secrets in Flutter or GitHub.
 7. Test with an approved test phone number before inviting users.
 
-Do not treat an account as phone-verified until Supabase confirms the OTP. Do not request or store Mobile Money PINs.
+Do not treat an account as phone-verified until Supabase confirms the OTP. Do not request or store Mobile Money PINs. Supabase notes that phone numbers can be recycled; add and require an appropriate MFA factor before production use of phone-plus-password accounts.
 
 ## Running the app against Pusa
 
