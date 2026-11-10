@@ -21,7 +21,7 @@ class PocketsScreen extends StatelessWidget {
         _PocketRow('Future plans', '15,000 XAF', '12%', Icons.flag_outlined),
       ],
     ),
-    floatingActionButton: FloatingActionButton.extended(
+    floatingActionButton: const FloatingActionButton.extended(
       onPressed: null,
       icon: Icon(Icons.add),
       label: Text('New pocket'),
