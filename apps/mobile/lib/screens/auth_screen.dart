@@ -81,6 +81,7 @@ class _AuthScreenState extends State<AuthScreen> {
       final response = await _supabase.auth.signUp(
         phone: phone,
         password: _password.text,
+        channel: OtpChannel.sms,
         data: {
           'display_name': _name.text.trim(),
           'email': _email.text.trim().toLowerCase(),
