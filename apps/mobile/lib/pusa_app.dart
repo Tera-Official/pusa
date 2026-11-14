@@ -38,6 +38,9 @@ class _AuthGate extends StatelessWidget {
     return StreamBuilder<AuthState>(
       stream: client.auth.onAuthStateChange,
       builder: (context, snapshot) {
+        if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
+          return const AuthScreen(passwordRecovery: true);
+        }
         final session = client.auth.currentSession ?? snapshot.data?.session;
         if (session == null) return const AuthScreen();
         return const PusaShell(backendConfigured: true);
