@@ -21,7 +21,9 @@ class _AuthScreenState extends State<AuthScreen> {
   final _confirmPassword = TextEditingController();
   _AuthMode _mode = _AuthMode.login;
   bool _busy = false;
-  bool _obscure = true;\n  bool _termsAccepted = false;\n  bool _privacyAccepted = false;
+  bool _obscure = true;
+  bool _termsAccepted = false;
+  bool _privacyAccepted = false;
   String? _error;
   String? _notice;
 
@@ -73,12 +75,21 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
+    if (!_termsAccepted || !_privacyAccepted) {
+      setState(() => _error = 'Please accept the Terms of Service and Privacy Notice to continue.');
+      return;
+    }
     await _perform(() async {
       final response = await _client.auth.signUp(
         email: _email.text.trim().toLowerCase(),
         password: _password.text,
         emailRedirectTo: _authRedirect,
-        data: {\n          'display_name': _name.text.trim(),\n          'terms_accepted': true,\n          'privacy_accepted': true,\n          'consent_version': '2026-11-v1',\n        },
+        data: {
+          'display_name': _name.text.trim(),
+          'terms_accepted': true,
+          'privacy_accepted': true,
+          'consent_version': '2026-11-v1',
+        },
       );
       if (response.session == null && mounted) {
         setState(() {
@@ -121,8 +132,8 @@ class _AuthScreenState extends State<AuthScreen> {
     }
     await _perform(() async {
       await _client.auth.updateUser(UserAttributes(password: _password.text));
+      await _client.auth.signOut();
       if (mounted) {
-        await _client.auth.signOut();
         setState(() {
           _mode = _AuthMode.login;
           _password.clear();
@@ -153,14 +164,16 @@ class _AuthScreenState extends State<AuthScreen> {
       _AuthMode.login => 'Welcome back',
       _AuthMode.signup => 'Create your Pusa account',
       _AuthMode.confirmation => 'Check your email',
-      _AuthMode.forgotPassword => 'Recover your account',\n      _AuthMode.recovery => 'Check your inbox',
+      _AuthMode.forgotPassword => 'Recover your account',
+      _AuthMode.recovery => 'Check your inbox',
       _AuthMode.newPassword => 'Choose a new password',
     };
     final subtitle = switch (_mode) {
       _AuthMode.login => 'Sign in to organise your money with purpose.',
       _AuthMode.signup => 'One account to give every franc a purpose.',
       _AuthMode.confirmation => 'Your account is almost ready.',
-      _AuthMode.forgotPassword => 'We’ll send a secure password-reset link to your email.',\n      _AuthMode.recovery => 'Follow the secure link in your email to continue.',
+      _AuthMode.forgotPassword => 'We’ll send a secure password-reset link to your email.',
+      _AuthMode.recovery => 'Follow the secure link in your email to continue.',
       _AuthMode.newPassword => 'Choose a strong password you have not used before.',
     };
 
@@ -260,7 +273,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       ),
                     const SizedBox(height: 12),
                     if (isLogin) ...[
-                      TextButton(onPressed: () => _switch(_AuthMode.recovery), child: const Text('Forgot password?')),
+                      TextButton(onPressed: () => _switch(_AuthMode.forgotPassword), child: const Text('Forgot password?')),
                       TextButton(onPressed: () => _switch(_AuthMode.signup), child: const Text('New to Pusa? Create an account')),
                     ] else if (isSignup || _mode == _AuthMode.forgotPassword || _mode == _AuthMode.recovery || _mode == _AuthMode.confirmation) ...[
                       TextButton(onPressed: () => _switch(_AuthMode.login), child: const Text('Back to sign in')),
