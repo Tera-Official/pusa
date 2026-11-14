@@ -120,29 +120,18 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
     Map<String, TextEditingController> controllers,
     int amount,
   ) {
+    if (selected.isEmpty || amount <= 0) return [];
     final rows = <Map<String, dynamic>>[];
+    var allocated = 0;
     for (var i = 0; i < selected.length; i++) {
       final pocket = selected[i];
       final bp = _basisPoints(controllers[pocket['pocket_id']]?.text ?? '');
-      if (bp == null) continue;
-      final numerator = amount * bp;
-      rows.add({
-        'name': pocket['name'],
-        'amount': numerator ~/ 10000,
-        'remainder': numerator % 10000,
-        'priority': i,
-      });
-    }
-    final allocated = rows.fold<int>(0, (sum, row) => sum + (row['amount'] as int));
-    var remaining = amount - allocated;
-    final ranked = [...rows]..sort((a, b) {
-      final byRemainder = (b['remainder'] as int).compareTo(a['remainder'] as int);
-      return byRemainder != 0 ? byRemainder : (a['priority'] as int).compareTo(b['priority'] as int);
-    });
-    for (final row in ranked) {
-      if (remaining <= 0) break;
-      row['amount'] = (row['amount'] as int) + 1;
-      remaining--;
+      if (bp == null) return [];
+      final piece = i == selected.length - 1
+          ? amount - allocated
+          : (amount * bp) ~/ 10000;
+      allocated += piece;
+      rows.add({'name': pocket['name'], 'amount': piece});
     }
     return rows;
   }
@@ -182,7 +171,7 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
         final total = selected.fold<int>(0, (sum, pocket) =>
           sum + (_basisPoints(controllers[pocket['pocket_id']]!.text) ?? 0));
         final amount = int.tryParse(previewAmount.text.trim()) ?? 0;
-        final preview = _previewRows(selected, controllers, amount);
+        final preview = total == 10000 ? _previewRows(selected, controllers, amount) : <Map<String, dynamic>>[];
         return Padding(
           padding: EdgeInsets.fromLTRB(20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 22),
           child: SizedBox(
@@ -250,6 +239,11 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
                 )),
               ]),
               const SizedBox(height: 6),
+              if (total != 10000)
+                const Padding(
+                  padding: EdgeInsets.only(top: 5),
+                  child: Text('Set the plan to exactly 100.00% to preview the final split.', style: TextStyle(color: _muted, fontSize: 10)),
+                ),
               if (preview.isNotEmpty)
                 ...preview.map((row) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
