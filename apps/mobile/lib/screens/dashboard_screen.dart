@@ -45,7 +45,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         client.from('profiles').select('display_name').eq('id', user.id).maybeSingle(),
         client.from('pocket_balances').select(
           'pocket_id,name,description,color_key,icon_key,status,is_locked,balance_xaf,created_at',
-        ).eq('user_id', user.id).eq('status', 'active').order('created_at'),
+        ).eq('user_id', user.id).order('created_at'),
         client.from('ledger_transactions').select(
           'transaction_type,amount_xaf,created_at',
         ).eq('user_id', user.id).eq('status', 'posted')
@@ -53,10 +53,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           .inFilter('transaction_type', ['deposit', 'withdrawal']),
       ]);
       final profile = results[0] as Map<String, dynamic>?;
-      final pocketRows = (results[1] as List).cast<Map<String, dynamic>>();
+      final allPocketRows = (results[1] as List).cast<Map<String, dynamic>>();
+      final activePocketRows = allPocketRows.where((pocket) => pocket['status'] == 'active').toList();
       final transactionRows = (results[2] as List).cast<Map<String, dynamic>>();
       var balance = 0;
-      for (final pocket in pocketRows) {
+      for (final pocket in allPocketRows) {
         balance += (pocket['balance_xaf'] as num?)?.toInt() ?? 0;
       }
       var income = 0;
@@ -70,7 +71,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() {
         _displayName = (profile?['display_name'] as String?)?.trim().split(' ').first ?? 'there';
         if (_displayName.isEmpty) _displayName = 'there';
-        _pockets = pocketRows;
+        _pockets = activePocketRows;
         _totalBalance = balance;
         _monthIncome = income;
         _monthOutflow = outflow;
@@ -192,7 +193,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         begin: Alignment.topLeft, end: Alignment.bottomRight),
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      const Text('TOTAL RECORDED ACROSS POCKETS', style: TextStyle(
+      const Text('TOTAL RECORDED ACROSS ALL POCKETS', style: TextStyle(
         color: Color(0xFFB9C4D0), fontSize: 10, fontWeight: FontWeight.w700, letterSpacing: 1.1,
       )),
       const SizedBox(height: 14),
