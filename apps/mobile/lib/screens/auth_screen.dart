@@ -11,7 +11,7 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-enum _AuthMode { login, signup, confirmation, recovery, newPassword }
+enum _AuthMode { login, signup, confirmation, forgotPassword, recovery, newPassword }
 
 class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
@@ -148,19 +148,19 @@ class _AuthScreenState extends State<AuthScreen> {
     final isSignup = _mode == _AuthMode.signup;
     final isLogin = _mode == _AuthMode.login;
     final isReset = _mode == _AuthMode.newPassword;
-    final isForm = isSignup || isLogin || _mode == _AuthMode.recovery || _mode == _AuthMode.recovery;
+    final isForm = isSignup || isLogin || _mode == _AuthMode.forgotPassword || isReset;
     final title = switch (_mode) {
       _AuthMode.login => 'Welcome back',
       _AuthMode.signup => 'Create your Pusa account',
       _AuthMode.confirmation => 'Check your email',
-      _AuthMode.recovery => 'Check your inbox',
+      _AuthMode.forgotPassword => 'Recover your account',\n      _AuthMode.recovery => 'Check your inbox',
       _AuthMode.newPassword => 'Choose a new password',
     };
     final subtitle = switch (_mode) {
       _AuthMode.login => 'Sign in to organise your money with purpose.',
       _AuthMode.signup => 'One account to give every franc a purpose.',
       _AuthMode.confirmation => 'Your account is almost ready.',
-      _AuthMode.recovery => 'Follow the secure link in your email to continue.',
+      _AuthMode.forgotPassword => 'We’ll send a secure password-reset link to your email.',\n      _AuthMode.recovery => 'Follow the secure link in your email to continue.',
       _AuthMode.newPassword => 'Choose a strong password you have not used before.',
     };
 
@@ -194,7 +194,7 @@ class _AuthScreenState extends State<AuthScreen> {
                           v == null || v.trim().isEmpty ? 'Enter your name.' : null),
                         const SizedBox(height: 13),
                       ],
-                      if (_mode != _AuthMode.recovery && !isReset || isLogin || isSignup)
+                      if (isLogin || isSignup || _mode == _AuthMode.forgotPassword)
                         _field(_email, 'Email address', keyboard: TextInputType.emailAddress,
                           validator: _emailValidator),
                       if (isLogin || isSignup || isReset) ...[
@@ -225,7 +225,7 @@ class _AuthScreenState extends State<AuthScreen> {
                       Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
                       const SizedBox(height: 12),
                     ],
-                    if (isLogin || isSignup || isReset || _mode == _AuthMode.recovery)
+                    if (isLogin || isSignup || isReset || _mode == _AuthMode.forgotPassword)
                       FilledButton(
                         onPressed: _busy ? null : () {
                           if (isLogin) _signIn();
@@ -246,7 +246,7 @@ class _AuthScreenState extends State<AuthScreen> {
                     if (isLogin) ...[
                       TextButton(onPressed: () => _switch(_AuthMode.recovery), child: const Text('Forgot password?')),
                       TextButton(onPressed: () => _switch(_AuthMode.signup), child: const Text('New to Pusa? Create an account')),
-                    ] else if (isSignup || _mode == _AuthMode.recovery || _mode == _AuthMode.confirmation) ...[
+                    ] else if (isSignup || _mode == _AuthMode.forgotPassword || _mode == _AuthMode.recovery || _mode == _AuthMode.confirmation) ...[
                       TextButton(onPressed: () => _switch(_AuthMode.login), child: const Text('Back to sign in')),
                     ] else if (isReset) ...[
                       TextButton(onPressed: () => _switch(_AuthMode.login), child: const Text('Back to sign in')),
