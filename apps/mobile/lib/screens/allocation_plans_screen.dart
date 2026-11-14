@@ -95,8 +95,15 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
   String _percent(int basisPoints) =>
       '${basisPoints ~/ 100}.${(basisPoints % 100).toString().padLeft(2, '0')}%';
 
-  String _money(int amount) =>
-      '${amount.toString().replaceAllMapped(RegExp(r'\\B(?=(\\d{3})+(?!\\d))'), (m) => ',')} XAF';
+  String _money(int amount) {
+    final digits = amount.toString();
+    final formatted = StringBuffer();
+    for (var i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) formatted.write(',');
+      formatted.write(digits[i]);
+    }
+    return '${formatted.toString()} XAF';
+  }
 
   int _totalBasisPoints(List<Map<String, dynamic>> rules) {
     var total = 0;
