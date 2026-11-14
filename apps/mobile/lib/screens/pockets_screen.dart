@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class PocketsScreen extends StatefulWidget {
-  const PocketsScreen({super.key});
+  const PocketsScreen({super.key, this.backendConfigured = true});
+  final bool backendConfigured;
 
   @override
   State<PocketsScreen> createState() => _PocketsScreenState();
@@ -39,7 +40,8 @@ class _PocketsScreenState extends State<PocketsScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    if (widget.backendConfigured) _load();
+    else _loading = false;
   }
 
   Future<void> _load() async {
