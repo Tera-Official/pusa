@@ -15,7 +15,7 @@ class PusaApp extends StatelessWidget {
     const ink = Color(0xFF101B2D);
     const green = Color(0xFFB8F36B);
     return MaterialApp(
-      title: 'Pusa — Smart Saving',
+      title: 'Pusa — Financial Management',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -58,8 +58,8 @@ class _PusaShellState extends State<PusaShell> {
   Widget build(BuildContext context) {
     final pages = [
       DashboardScreen(backendConfigured: widget.backendConfigured),
-      const PocketsScreen(),
-      const ActivityScreen(),
+      PocketsScreen(backendConfigured: widget.backendConfigured),
+      ActivityScreen(backendConfigured: widget.backendConfigured),
       ProfileScreen(backendConfigured: widget.backendConfigured),
     ];
     return Scaffold(
