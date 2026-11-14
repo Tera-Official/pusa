@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ActivityScreen extends StatefulWidget {
-  const ActivityScreen({super.key});
+  const ActivityScreen({super.key, this.backendConfigured = true});
+  final bool backendConfigured;
 
   @override
   State<ActivityScreen> createState() => _ActivityScreenState();
@@ -16,7 +17,8 @@ class _ActivityScreenState extends State<ActivityScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
+    if (widget.backendConfigured) _load();
+    else _loading = false;
   }
 
   Future<void> _load() async {
