@@ -21,7 +21,7 @@ class _AuthScreenState extends State<AuthScreen> {
   final _confirmPassword = TextEditingController();
   _AuthMode _mode = _AuthMode.login;
   bool _busy = false;
-  bool _obscure = true;
+  bool _obscure = true;\n  bool _termsAccepted = false;\n  bool _privacyAccepted = false;
   String? _error;
   String? _notice;
 
@@ -78,7 +78,7 @@ class _AuthScreenState extends State<AuthScreen> {
         email: _email.text.trim().toLowerCase(),
         password: _password.text,
         emailRedirectTo: _authRedirect,
-        data: {'display_name': _name.text.trim()},
+        data: {\n          'display_name': _name.text.trim(),\n          'terms_accepted': true,\n          'privacy_accepted': true,\n          'consent_version': '2026-11-v1',\n        },
       );
       if (response.session == null && mounted) {
         setState(() {
@@ -212,6 +212,22 @@ class _AuthScreenState extends State<AuthScreen> {
                         _field(_confirmPassword, 'Confirm password', obscure: true,
                           validator: (v) => v != _password.text ? 'Passwords do not match.' : null),
                       ],
+                    ],
+                    if (isSignup) ...[
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _termsAccepted,
+                        onChanged: (value) => setState(() => _termsAccepted = value ?? false),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: const Text('I agree to the Terms of Service.', style: TextStyle(fontSize: 12)),
+                      ),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        value: _privacyAccepted,
+                        onChanged: (value) => setState(() => _privacyAccepted = value ?? false),
+                        controlAffinity: ListTileControlAffinity.leading,
+                        title: const Text('I have read the Privacy Notice.', style: TextStyle(fontSize: 12)),
+                      ),
                     ],
                     if (_notice != null) ...[
                       Container(
