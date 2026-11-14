@@ -256,13 +256,25 @@ class _PocketsScreenState extends State<PocketsScreen> {
             if (locked) 'Locked',
             if ((pocket['description'] as String? ?? '').isNotEmpty) pocket['description'] as String,
           ].join(' · ')),
-          trailing: Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text(_money(pocket['balance_xaf']), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
-            const SizedBox(height: 2),
-            const Text('recorded balance', style: TextStyle(color: _muted, fontSize: 9)),
+          trailing: Row(mainAxisSize: MainAxisSize.min, children: [
+            Column(mainAxisAlignment: MainAxisAlignment.center, crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text(_money(pocket['balance_xaf']), style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 12)),
+              const SizedBox(height: 2),
+              const Text('recorded balance', style: TextStyle(color: _muted, fontSize: 9)),
+            ]),
+            PopupMenuButton<String>(
+              tooltip: 'Pocket actions',
+              onSelected: (value) {
+                if (value == 'edit') _showPocketForm(pocket: pocket);
+                if (value == 'archive' || value == 'restore') _confirmArchive(pocket);
+              },
+              itemBuilder: (context) => [
+                const PopupMenuItem(value: 'edit', child: Text('Edit pocket')),
+                PopupMenuItem(value: archived ? 'restore' : 'archive', child: Text(archived ? 'Restore pocket' : 'Archive pocket')),
+              ],
+            ),
           ]),
           onTap: () => _showPocketForm(pocket: pocket),
-          onLongPress: () => _confirmArchive(pocket),
         ),
       ),
     );
