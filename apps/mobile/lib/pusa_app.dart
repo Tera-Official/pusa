@@ -58,8 +58,8 @@ class _PusaShellState extends State<PusaShell> {
   Widget build(BuildContext context) {
     final pages = [
       DashboardScreen(backendConfigured: widget.backendConfigured),
-      const PocketsScreen(),
-      const ActivityScreen(),
+      PocketsScreen(backendConfigured: widget.backendConfigured),
+      ActivityScreen(backendConfigured: widget.backendConfigured),
       ProfileScreen(backendConfigured: widget.backendConfigured),
     ];
     return Scaffold(
