@@ -115,21 +115,22 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18),
-        if (!backendConfigured)
-          Container(
+        Container(
             padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
               color: const Color(0xFFFFF5D9),
               borderRadius: BorderRadius.circular(15),
               border: Border.all(color: const Color(0xFFF2E2B2)),
             ),
-            child: const Row(
+            child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Icon(Icons.info_outline_rounded, color: Color(0xFF946B16), size: 19),
                 SizedBox(width: 9),
                 Expanded(child: Text(
-                  'Preview mode is active. Sample figures are shown until the secure Pusa backend is connected.',
+                  backendConfigured
+                      ? 'Your account is connected, but the balances and transactions shown here are still illustrative preview data. Real financial data is not enabled yet.'
+                      : 'Preview mode is active. Sample figures are shown until the secure Pusa backend is connected.',
                   style: TextStyle(color: Color(0xFF765719), fontSize: 11, height: 1.4),
                 )),
               ],
