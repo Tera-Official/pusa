@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/activity_screen.dart';
@@ -30,22 +32,44 @@ class PusaApp extends StatelessWidget {
   }
 }
 
-class _AuthGate extends StatelessWidget {
+class _AuthGate extends StatefulWidget {
   const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  StreamSubscription<AuthState>? _authSubscription;
+  bool _passwordRecovery = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((state) {
+      if (!mounted) return;
+      if (state.event == AuthChangeEvent.passwordRecovery) {
+        setState(() => _passwordRecovery = true);
+      } else if (state.event == AuthChangeEvent.signedOut) {
+        setState(() => _passwordRecovery = false);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    final client = Supabase.instance.client;
-    return StreamBuilder<AuthState>(
-      stream: client.auth.onAuthStateChange,
-      builder: (context, snapshot) {
-        if (snapshot.data?.event == AuthChangeEvent.passwordRecovery) {
-          return const AuthScreen(passwordRecovery: true);
-        }
-        final session = client.auth.currentSession ?? snapshot.data?.session;
-        if (session == null) return const AuthScreen();
-        return const PusaShell(backendConfigured: true);
-      },
-    );
+    final session = Supabase.instance.client.auth.currentSession;
+    if (_passwordRecovery) {
+      return const AuthScreen(passwordRecovery: true);
+    }
+    if (session == null) return const AuthScreen();
+    return const PusaShell(backendConfigured: true);
   }
 }
 
