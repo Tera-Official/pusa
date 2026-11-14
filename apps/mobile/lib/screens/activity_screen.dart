@@ -117,8 +117,11 @@ class _ActivityScreenState extends State<ActivityScreen> {
         leading: CircleAvatar(backgroundColor: const Color(0xFFEAF3E0),
           child: Icon(_icon(type), color: const Color(0xFF26374B))),
         title: Text(_title(type), style: const TextStyle(fontWeight: FontWeight.w700)),
-        subtitle: Text((row['description'] as String?)?.isNotEmpty == true
-          ? '${row['description']} · $dateText' : dateText),
+        subtitle: Text([
+          if ((row['description'] as String?)?.isNotEmpty == true) row['description'] as String,
+          if (row['status'] == 'reversed') 'Reversed',
+          dateText,
+        ].where((part) => part.isNotEmpty).join(' · ')),
         trailing: Text('${isInflow ? '+' : type == 'withdrawal' ? '−' : ''}${_money(amount)}',
           style: TextStyle(color: isInflow ? const Color(0xFF397B36) : const Color(0xFF26374B),
             fontWeight: FontWeight.w800, fontSize: 11)),
