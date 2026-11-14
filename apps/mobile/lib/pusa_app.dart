@@ -15,7 +15,7 @@ class PusaApp extends StatelessWidget {
     const ink = Color(0xFF101B2D);
     const green = Color(0xFFB8F36B);
     return MaterialApp(
-      title: 'Pusa — Smart Saving',
+      title: 'Pusa — Financial Management',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
