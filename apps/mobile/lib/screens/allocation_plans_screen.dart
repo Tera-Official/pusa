@@ -49,7 +49,6 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
         client.from('pocket_balances')
           .select('pocket_id,name,icon_key,color_key,status,balance_xaf')
           .eq('user_id', user.id)
-          .eq('status', 'active')
           .order('created_at'),
       ]);
       final plans = (results[0] as List).cast<Map<String, dynamic>>();
@@ -104,7 +103,7 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
     var total = 0;
     for (final rule in rules) {
       final value = rule['percentage'];
-      final parsed = value is num ? (value * 100).round() : _basisPoints(value.toString());
+      final parsed = _basisPoints(value.toString());
       total += parsed ?? 0;
     }
     return total;
@@ -156,7 +155,8 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
     final selectedIds = <String>{};
     for (final pocket in _pockets) {
       final id = pocket['pocket_id'] as String;
-      final rule = existing.where((item) => item['pocket_id'] == id).firstOrNull;
+      final matchingRules = existing.where((item) => item['pocket_id'] == id).toList();
+      final rule = matchingRules.isEmpty ? null : matchingRules.first;
       if (rule != null) {
         selectedIds.add(id);
         controllers[id] = TextEditingController(text: (rule['percentage'] as num).toStringAsFixed(2));
@@ -171,7 +171,8 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
       isScrollControlled: true,
       backgroundColor: const Color(0xFFF6F8F4),
       builder: (sheetContext) => StatefulBuilder(builder: (context, setSheetState) {
-        final selected = _pockets.where((p) => selectedIds.contains(p['pocket_id'])).toList();
+        final activePockets = _pockets.where((p) => p['status'] == 'active').toList();
+        final selected = activePockets.where((p) => selectedIds.contains(p['pocket_id'])).toList();
         final total = selected.fold<int>(0, (sum, pocket) =>
           sum + (_basisPoints(controllers[pocket['pocket_id']]!.text) ?? 0));
         final amount = int.tryParse(previewAmount.text.trim()) ?? 0;
@@ -196,7 +197,7 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
               ]),
               const SizedBox(height: 5),
               Expanded(child: ListView(
-                children: _pockets.map((pocket) {
+                children: activePockets.map((pocket) {
                   final id = pocket['pocket_id'] as String;
                   final selectedPocket = selectedIds.contains(id);
                   return Card(
@@ -278,7 +279,7 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
                     if (bp == null) { valid = false; break; }
                     rules.add({
                       'pocket_id': id,
-                      'percentage': (bp / 100).toStringAsFixed(2),
+                      'percentage': '${bp ~/ 100}.${(bp % 100).toString().padLeft(2, '0')}',
                       'priority': i + 1,
                     });
                   }
@@ -382,7 +383,8 @@ class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
             const Text('No pocket rules yet.', style: TextStyle(color: _muted, fontSize: 12))
           else
             ...rules.map((rule) {
-              final pocket = _pockets.where((p) => p['pocket_id'] == rule['pocket_id']).firstOrNull;
+              final matchingPockets = _pockets.where((p) => p['pocket_id'] == rule['pocket_id']).toList();
+              final pocket = matchingPockets.isEmpty ? null : matchingPockets.first;
               final label = pocket?['name'] as String? ?? 'Pocket';
               final percentage = (rule['percentage'] as num).toStringAsFixed(2);
               return Padding(
