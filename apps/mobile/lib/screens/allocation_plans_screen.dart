@@ -13,7 +13,6 @@ class AllocationPlansScreen extends StatefulWidget {
 class _AllocationPlansScreenState extends State<AllocationPlansScreen> {
   static const _ink = Color(0xFF101B2D);
   static const _muted = Color(0xFF7B8795);
-  static const _green = Color(0xFFB8F36B);
 
   bool _loading = true;
   bool _saving = false;
