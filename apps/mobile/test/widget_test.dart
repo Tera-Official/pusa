@@ -10,6 +10,7 @@ void main() {
     expect(find.text('Your financial workspace'), findsOneWidget);
     expect(find.textContaining('Preview mode.'), findsOneWidget);
     expect(find.text('Pockets'), findsOneWidget);
+    expect(find.text('Plans'), findsOneWidget);
     expect(find.text('Activity'), findsOneWidget);
   });
 }
