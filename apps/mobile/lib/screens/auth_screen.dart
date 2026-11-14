@@ -1,70 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+const _authRedirect = 'com.teraofficial.pusa://login-callback';
+
 class AuthScreen extends StatefulWidget {
-  const AuthScreen({super.key});
+  const AuthScreen({super.key, this.passwordRecovery = false});
+  final bool passwordRecovery;
 
   @override
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-enum _AuthMode { login, signup, verifySignup, recover, verifyRecovery, setPassword }
+enum _AuthMode { login, signup, confirmation, recovery, newPassword }
 
 class _AuthScreenState extends State<AuthScreen> {
   final _formKey = GlobalKey<FormState>();
   final _name = TextEditingController();
   final _email = TextEditingController();
-  final _phone = TextEditingController(text: '+237');
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
-  final _otp = TextEditingController();
-
   _AuthMode _mode = _AuthMode.login;
   bool _busy = false;
-  bool _obscurePassword = true;
-  bool _acceptedTerms = false;
-  bool _acceptedPrivacy = false;
-  String? _pendingPhone;
+  bool _obscure = true;
   String? _error;
+  String? _notice;
 
-  SupabaseClient get _supabase => Supabase.instance.client;
-  static const _ink = Color(0xFF101B2D);
-  static const _green = Color(0xFFB8F36B);
+  SupabaseClient get _client => Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.passwordRecovery) _mode = _AuthMode.newPassword;
+  }
 
   @override
   void dispose() {
     _name.dispose();
     _email.dispose();
-    _phone.dispose();
     _password.dispose();
     _confirmPassword.dispose();
-    _otp.dispose();
     super.dispose();
   }
 
-  String? _required(String? value, String label) =>
-      value == null || value.trim().isEmpty ? 'Enter your $label.' : null;
-
-  String? _validatePhone(String? value) {
-    final phone = value?.trim() ?? '';
-    if (!RegExp(r'^\+[1-9]\d{7,14}$').hasMatch(phone)) {
-      return 'Use international format, e.g. +2376XXXXXXXX.';
+  String? _emailValidator(String? value) {
+    final email = value?.trim() ?? '';
+    if (email.isEmpty) return 'Enter your email address.';
+    if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+      return 'Enter a valid email address.';
     }
     return null;
   }
 
-  Future<void> _run(Future<void> Function() action) async {
+  String? _passwordValidator(String? value) {
+    if (value == null || value.isEmpty) return 'Enter your password.';
+    if (value.length < 8) return 'Use at least 8 characters.';
+    return null;
+  }
+
+  Future<void> _perform(Future<void> Function() action) async {
     if (_busy) return;
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
+    setState(() { _busy = true; _error = null; _notice = null; });
     try {
       await action();
     } on AuthException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = 'Something went wrong. Please try again.');
+      if (mounted) setState(() => _error = 'Something went wrong. Check your connection and try again.');
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -72,97 +73,63 @@ class _AuthScreenState extends State<AuthScreen> {
 
   Future<void> _signUp() async {
     if (!_formKey.currentState!.validate()) return;
-    if (!_acceptedTerms || !_acceptedPrivacy) {
-      setState(() => _error = 'Please accept the Terms and Privacy Notice to continue.');
-      return;
-    }
-    await _run(() async {
-      final phone = _phone.text.trim();
-      final response = await _supabase.auth.signUp(
-        phone: phone,
+    await _perform(() async {
+      final response = await _client.auth.signUp(
+        email: _email.text.trim().toLowerCase(),
         password: _password.text,
-        channel: OtpChannel.sms,
-        data: {
-          'display_name': _name.text.trim(),
-          'email': _email.text.trim().toLowerCase(),
-          'terms_accepted': true,
-          'privacy_accepted': true,
-          'consent_version': '2026-11-v1',
-        },
+        emailRedirectTo: _authRedirect,
+        data: {'display_name': _name.text.trim()},
       );
-      if (response.session == null) {
+      if (response.session == null && mounted) {
         setState(() {
-          _pendingPhone = phone;
-          _mode = _AuthMode.verifySignup;
+          _mode = _AuthMode.confirmation;
+          _notice = 'We sent a confirmation link to ${_email.text.trim()}. Open it on this device to verify your email, then sign in.';
         });
       }
     });
   }
 
-  Future<void> _login() async {
+  Future<void> _signIn() async {
     if (!_formKey.currentState!.validate()) return;
-    await _run(() async {
-      await _supabase.auth.signInWithPassword(
-        phone: _phone.text.trim(),
+    await _perform(() async {
+      await _client.auth.signInWithPassword(
+        email: _email.text.trim().toLowerCase(),
         password: _password.text,
       );
     });
   }
 
-  Future<void> _sendRecoveryCode() async {
+  Future<void> _sendRecovery() async {
     if (!_formKey.currentState!.validate()) return;
-    await _run(() async {
-      final phone = _phone.text.trim();
-      await _supabase.auth.signInWithOtp(
-        phone: phone,
-        shouldCreateUser: false,
+    await _perform(() async {
+      await _client.auth.resetPasswordForEmail(
+        _email.text.trim().toLowerCase(),
+        redirectTo: _authRedirect,
       );
-      setState(() {
-        _pendingPhone = phone;
-        _mode = _AuthMode.verifyRecovery;
+      if (mounted) setState(() {
+        _mode = _AuthMode.recovery;
+        _notice = 'If an account exists for this email, a password-reset link has been sent.';
       });
     });
   }
 
-  Future<void> _verifyCode() async {
-    if (_otp.text.trim().length < 6) {
-      setState(() => _error = 'Enter the 6-digit code sent to your phone.');
+  Future<void> _saveNewPassword() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_password.text != _confirmPassword.text) {
+      setState(() => _error = 'Passwords do not match.');
       return;
     }
-    await _run(() async {
-      await _supabase.auth.verifyOTP(
-        phone: _pendingPhone!,
-        token: _otp.text.trim(),
-        type: OtpType.sms,
-      );
-      if (_mode == _AuthMode.verifyRecovery) {
-        setState(() => _mode = _AuthMode.setPassword);
+    await _perform(() async {
+      await _client.auth.updateUser(UserAttributes(password: _password.text));
+      if (mounted) {
+        await _client.auth.signOut();
+        setState(() {
+          _mode = _AuthMode.login;
+          _password.clear();
+          _confirmPassword.clear();
+          _notice = 'Your password has been updated. Sign in with your new password.';
+        });
       }
-    });
-  }
-
-  Future<void> _resendCode() async {
-    await _run(() async {
-      await _supabase.auth.resend(
-        type: OtpType.sms,
-        phone: _pendingPhone!,
-      );
-    });
-  }
-
-  Future<void> _setNewPassword() async {
-    if (!_formKey.currentState!.validate()) return;
-    await _run(() async {
-      await _supabase.auth.updateUser(
-        UserAttributes(password: _password.text),
-      );
-      await _supabase.auth.signOut();
-      setState(() {
-        _password.clear();
-        _confirmPassword.clear();
-        _otp.clear();
-        _mode = _AuthMode.login;
-      });
     });
   }
 
@@ -170,9 +137,9 @@ class _AuthScreenState extends State<AuthScreen> {
     setState(() {
       _mode = mode;
       _error = null;
+      _notice = null;
       _password.clear();
       _confirmPassword.clear();
-      _otp.clear();
     });
   }
 
@@ -180,23 +147,21 @@ class _AuthScreenState extends State<AuthScreen> {
   Widget build(BuildContext context) {
     final isSignup = _mode == _AuthMode.signup;
     final isLogin = _mode == _AuthMode.login;
-    final isCode = _mode == _AuthMode.verifySignup || _mode == _AuthMode.verifyRecovery;
-    final isPasswordReset = _mode == _AuthMode.setPassword;
+    final isReset = _mode == _AuthMode.newPassword;
+    final isForm = isSignup || isLogin || _mode == _AuthMode.recovery || _mode == _AuthMode.recovery;
     final title = switch (_mode) {
       _AuthMode.login => 'Welcome back',
       _AuthMode.signup => 'Create your Pusa account',
-      _AuthMode.verifySignup => 'Verify your phone',
-      _AuthMode.recover => 'Recover your account',
-      _AuthMode.verifyRecovery => 'Confirm it’s you',
-      _AuthMode.setPassword => 'Set a new password',
+      _AuthMode.confirmation => 'Check your email',
+      _AuthMode.recovery => 'Check your inbox',
+      _AuthMode.newPassword => 'Choose a new password',
     };
     final subtitle = switch (_mode) {
       _AuthMode.login => 'Sign in to organise your money with purpose.',
       _AuthMode.signup => 'One account to give every franc a purpose.',
-      _AuthMode.verifySignup => 'Enter the SMS code sent to $_pendingPhone.',
-      _AuthMode.recover => 'We’ll send a one-time code to your registered phone.',
-      _AuthMode.verifyRecovery => 'Enter the recovery code sent to $_pendingPhone.',
-      _AuthMode.setPassword => 'Choose a new password for your account.',
+      _AuthMode.confirmation => 'Your account is almost ready.',
+      _AuthMode.recovery => 'Follow the secure link in your email to continue.',
+      _AuthMode.newPassword => 'Choose a strong password you have not used before.',
     };
 
     return Scaffold(
@@ -211,120 +176,84 @@ class _AuthScreenState extends State<AuthScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Center(
-                      child: Container(
-                        width: 62,
-                        height: 62,
-                        decoration: BoxDecoration(
-                          color: _ink,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: const Icon(Icons.savings_rounded, color: _green, size: 31),
-                      ),
-                    ),
+                    Center(child: Container(
+                      width: 62, height: 62,
+                      decoration: BoxDecoration(color: const Color(0xFF101B2D), borderRadius: BorderRadius.circular(20)),
+                      child: const Icon(Icons.savings_rounded, color: Color(0xFFB8F36B), size: 31),
+                    )),
                     const SizedBox(height: 24),
                     Text(title, textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: _ink)),
+                      style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, color: Color(0xFF101B2D))),
                     const SizedBox(height: 8),
                     Text(subtitle, textAlign: TextAlign.center,
                       style: const TextStyle(color: Color(0xFF7B8795), height: 1.5)),
                     const SizedBox(height: 28),
-                    if (isSignup) ...[
-                      _field(_name, 'Full name', validator: (v) => _required(v, 'name')),
-                      const SizedBox(height: 13),
-                      _field(_email, 'Email address', keyboard: TextInputType.emailAddress,
-                        validator: (v) {
-                          if (_required(v, 'email address') != null) return 'Enter your email address.';
-                          return RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(v!.trim())
-                              ? null : 'Enter a valid email address.';
-                        }),
-                      const SizedBox(height: 13),
-                    ],
-                    if (isLogin || isSignup || _mode == _AuthMode.recover) ...[
-                      _field(_phone, 'Phone number (+237...)', keyboard: TextInputType.phone,
-                        validator: _validatePhone),
-                      const SizedBox(height: 13),
-                    ],
-                    if (isLogin || isSignup || isPasswordReset) ...[
-                      _field(_password, isPasswordReset ? 'New password' : 'Password',
-                        obscure: _obscurePassword,
-                        suffix: IconButton(
-                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                          icon: Icon(_obscurePassword ? Icons.visibility_outlined : Icons.visibility_off_outlined),
-                        ),
-                        validator: (v) {
-                          if (_required(v, 'password') != null) return 'Enter a password.';
-                          if (v!.length < 8) return 'Use at least 8 characters.';
-                          return null;
-                        }),
-                      if (isSignup || isPasswordReset) ...[
+                    if (isForm || isReset) ...[
+                      if (isSignup) ...[
+                        _field(_name, 'Full name', validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Enter your name.' : null),
+                        const SizedBox(height: 13),
+                      ],
+                      if (_mode != _AuthMode.recovery && !isReset || isLogin || isSignup)
+                        _field(_email, 'Email address', keyboard: TextInputType.emailAddress,
+                          validator: _emailValidator),
+                      if (isLogin || isSignup || isReset) ...[
+                        const SizedBox(height: 13),
+                        _field(_password, isReset ? 'New password' : 'Password',
+                          obscure: _obscure,
+                          suffix: IconButton(
+                            onPressed: () => setState(() => _obscure = !_obscure),
+                            icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined),
+                          ),
+                          validator: _passwordValidator),
+                      ],
+                      if (isSignup || isReset) ...[
                         const SizedBox(height: 13),
                         _field(_confirmPassword, 'Confirm password', obscure: true,
                           validator: (v) => v != _password.text ? 'Passwords do not match.' : null),
                       ],
                     ],
-                    if (isCode) ...[
-                      _field(_otp, '6-digit SMS code', keyboard: TextInputType.number,
-                        validator: (v) => v == null || v.trim().length != 6 ? 'Enter the 6-digit code.' : null),
-                      Align(alignment: Alignment.centerRight,
-                        child: TextButton(onPressed: _busy ? null : _resendCode, child: const Text('Resend code'))),
-                    ],
-                    if (isSignup) ...[
-                      const SizedBox(height: 8),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: _acceptedTerms,
-                        onChanged: (v) => setState(() => _acceptedTerms = v ?? false),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: const Text('I agree to the Terms of Service.', style: TextStyle(fontSize: 12)),
+                    if (_notice != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(color: const Color(0xFFEAF4E2), borderRadius: BorderRadius.circular(12)),
+                        child: Text(_notice!, style: const TextStyle(color: Color(0xFF24451D))),
                       ),
-                      CheckboxListTile(
-                        contentPadding: EdgeInsets.zero,
-                        value: _acceptedPrivacy,
-                        onChanged: (v) => setState(() => _acceptedPrivacy = v ?? false),
-                        controlAffinity: ListTileControlAffinity.leading,
-                        title: const Text('I have read the Privacy Notice.', style: TextStyle(fontSize: 12)),
-                      ),
+                      const SizedBox(height: 12),
                     ],
                     if (_error != null) ...[
-                      const SizedBox(height: 10),
                       Text(_error!, style: const TextStyle(color: Colors.red, fontSize: 13)),
+                      const SizedBox(height: 12),
                     ],
-                    const SizedBox(height: 18),
-                    FilledButton(
-                      onPressed: _busy ? null : () {
-                        if (isLogin) {
-                          _login();
-                        } else if (isSignup) {
-                          _signUp();
-                        } else if (_mode == _AuthMode.recover) {
-                          _sendRecoveryCode();
-                        } else if (isCode) {
-                          _verifyCode();
-                        } else if (isPasswordReset) {
-                          _setNewPassword();
-                        }
-                      },
-                      style: FilledButton.styleFrom(
-                        backgroundColor: _ink,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                      ),
-                      child: _busy
+                    if (isLogin || isSignup || isReset || _mode == _AuthMode.recovery)
+                      FilledButton(
+                        onPressed: _busy ? null : () {
+                          if (isLogin) _signIn();
+                          else if (isSignup) _signUp();
+                          else if (isReset) _saveNewPassword();
+                          else _sendRecovery();
+                        },
+                        style: FilledButton.styleFrom(
+                          backgroundColor: const Color(0xFF101B2D),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                        ),
+                        child: _busy
                           ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                          : Text(isLogin ? 'Sign in' : isSignup ? 'Create account' :
-                              isCode ? 'Verify code' : isPasswordReset ? 'Save new password' : 'Send recovery code'),
-                    ),
+                          : Text(isLogin ? 'Sign in' : isSignup ? 'Create account' : isReset ? 'Save new password' : 'Send reset link'),
+                      ),
                     const SizedBox(height: 12),
                     if (isLogin) ...[
-                      TextButton(onPressed: () => _switch(_AuthMode.recover), child: const Text('Forgot password?')),
-                      TextButton(onPressed: () => _switch(_AuthMode.signup),
-                        child: const Text('New to Pusa? Create an account')),
-                    ] else if (isSignup || _mode == _AuthMode.recover) ...[
-                      TextButton(onPressed: () => _switch(_AuthMode.login), child: const Text('Already have an account? Sign in')),
-                    ] else if (isPasswordReset) ...[
+                      TextButton(onPressed: () => _switch(_AuthMode.recovery), child: const Text('Forgot password?')),
+                      TextButton(onPressed: () => _switch(_AuthMode.signup), child: const Text('New to Pusa? Create an account')),
+                    ] else if (isSignup || _mode == _AuthMode.recovery || _mode == _AuthMode.confirmation) ...[
+                      TextButton(onPressed: () => _switch(_AuthMode.login), child: const Text('Back to sign in')),
+                    ] else if (isReset) ...[
                       TextButton(onPressed: () => _switch(_AuthMode.login), child: const Text('Back to sign in')),
                     ],
+                    const SizedBox(height: 20),
+                    const Text('Phone verification will be available in a future update.',
+                      textAlign: TextAlign.center, style: TextStyle(color: Color(0xFF8993A0), fontSize: 12)),
                   ],
                 ),
               ),
@@ -342,19 +271,17 @@ class _AuthScreenState extends State<AuthScreen> {
     bool obscure = false,
     Widget? suffix,
     String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboard,
-      obscureText: obscure,
-      validator: validator,
-      decoration: InputDecoration(
-        labelText: label,
-        suffixIcon: suffix,
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
-      ),
-    );
-  }
+  }) => TextFormField(
+    controller: controller,
+    keyboardType: keyboard,
+    obscureText: obscure,
+    validator: validator,
+    decoration: InputDecoration(
+      labelText: label,
+      suffixIcon: suffix,
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14)),
+    ),
+  );
 }
