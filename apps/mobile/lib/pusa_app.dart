@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'screens/activity_screen.dart';
+import 'screens/allocation_plans_screen.dart';
 import 'screens/auth_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/pockets_screen.dart';
@@ -59,6 +60,7 @@ class _PusaShellState extends State<PusaShell> {
     final pages = [
       DashboardScreen(backendConfigured: widget.backendConfigured),
       PocketsScreen(backendConfigured: widget.backendConfigured),
+      AllocationPlansScreen(backendConfigured: widget.backendConfigured),
       ActivityScreen(backendConfigured: widget.backendConfigured),
       ProfileScreen(backendConfigured: widget.backendConfigured),
     ];
@@ -70,6 +72,7 @@ class _PusaShellState extends State<PusaShell> {
         destinations: const [
           NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'Home'),
           NavigationDestination(icon: Icon(Icons.account_balance_wallet_outlined), label: 'Pockets'),
+          NavigationDestination(icon: Icon(Icons.pie_chart_outline_rounded), label: 'Plans'),
           NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Activity'),
           NavigationDestination(icon: Icon(Icons.person_outline_rounded), label: 'Profile'),
         ],
