@@ -28,6 +28,23 @@ class PusaApp extends StatelessWidget {
         fontFamily: 'Roboto',
       ),
       home: backendConfigured ? const _AuthGate() : const PusaShell(backendConfigured: false),
+      // Android delivers custom-scheme auth callbacks to Flutter as a route
+      // such as "/?code=...". The Supabase SDK processes the URI itself; this
+      // route handler keeps Flutter's Navigator from rejecting that callback.
+      onGenerateRoute: (settings) {
+        return MaterialPageRoute<void>(
+          settings: settings,
+          builder: (_) => backendConfigured
+              ? const _AuthGate()
+              : const PusaShell(backendConfigured: false),
+        );
+      },
+      onUnknownRoute: (settings) => MaterialPageRoute<void>(
+        settings: settings,
+        builder: (_) => backendConfigured
+            ? const _AuthGate()
+            : const PusaShell(backendConfigured: false),
+      ),
     );
   }
 }
@@ -48,11 +65,15 @@ class _AuthGateState extends State<_AuthGate> {
     super.initState();
     _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((state) {
       if (!mounted) return;
-      if (state.event == AuthChangeEvent.passwordRecovery) {
-        setState(() => _passwordRecovery = true);
-      } else if (state.event == AuthChangeEvent.signedOut) {
-        setState(() => _passwordRecovery = false);
-      }
+      setState(() {
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          _passwordRecovery = true;
+        } else if (state.event == AuthChangeEvent.signedOut) {
+          _passwordRecovery = false;
+        }
+        // Rebuild for signedIn/initialSession as well, so a successfully
+        // confirmed email or password login immediately opens the dashboard.
+      });
     });
   }
 
