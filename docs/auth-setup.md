@@ -1,31 +1,39 @@
-# Pusa phone authentication setup
+# Pusa email and password authentication setup
 
-## Implemented client flow
+## Implemented Flutter flow
 
-The Flutter app now includes:
-- Phone-number and password sign-in.
-- Account registration with full name, email, E.164 phone number and password.
-- SMS OTP verification after registration.
-- SMS OTP-based password recovery.
-- Password update after a successful recovery OTP.
+The mobile app uses Supabase email/password authentication:
+- Account registration with full name, email and password.
+- Required Terms of Service and Privacy Notice consent capture.
+- Email confirmation before normal sign-in (when email confirmation is enabled in Supabase).
+- Email/password sign-in.
+- Email-based password recovery and password update.
 - Profile display, name updates and sign-out.
-- Signup consent capture metadata and server-created profile records.
+- Phone authentication is not offered in this release; it remains a future option until an SMS provider is configured.
 
-The phone number is the authentication identifier. Email is stored as profile contact information and is not yet used as a login identifier.
+Supabase Auth is the authority for credentials and email verification. The matching `public.profiles` row stores the normalized email and display name for profile display. Do not use user-editable metadata for authorization decisions.
 
-## Required Supabase configuration
+## Required Supabase Auth configuration
 
-The app uses Supabase Auth phone authentication. SMS delivery will not work until a supported SMS provider is configured for the dedicated Pusa Supabase project.
+In the Pusa Supabase project:
 
-1. Open the Pusa Supabase project.
-2. Go to Authentication settings and open the Phone provider configuration.
-3. Enable phone sign-ups and phone confirmations.
-4. Configure a supported SMS provider and its credentials.
-5. Configure the OTP message template and sensible expiry/rate limits.
-6. Keep production credentials in Supabase's provider settings; never put SMS-provider secrets in Flutter or GitHub.
-7. Test with an approved test phone number before inviting users.
+1. Open **Authentication → Providers → Email**.
+2. Ensure Email provider is enabled.
+3. Enable **Confirm email**. Users must verify their email before normal password sign-in.
+4. Leave the Phone provider disabled until an SMS provider and phone-verification workflow are deliberately introduced.
+5. Open **Authentication → URL Configuration**.
+6. Add this exact value to **Additional Redirect URLs**:
 
-Do not treat an account as phone-verified until Supabase confirms the OTP. Do not request or store Mobile Money PINs. Supabase notes that phone numbers can be recycled; add and require an appropriate MFA factor before production use of phone-plus-password accounts.
+   `com.teraofficial.pusa://login-callback`
+
+7. Configure the email confirmation and password recovery templates to use the redirect URL supplied by the client (Supabase's `{{ .RedirectTo }}` template variable where applicable).
+8. Test confirmation and recovery links on a physical Android device with Pusa installed.
+
+The Android manifest registers the callback scheme and host. Supabase Flutter handles the incoming auth deep link and session exchange.
+
+## Email delivery
+
+Supabase's built-in email sender is intended for evaluation and has best-effort delivery and strict rate limits. Before inviting real users, configure a production SMTP provider in **Authentication → SMTP Settings**, verify sender/domain authentication, and test confirmation and recovery messages. Do not put SMTP credentials in Flutter, GitHub, or client-visible environment variables.
 
 ## Running the app against Pusa
 
@@ -33,8 +41,8 @@ From `apps/mobile`:
 
 ```bash
 flutter pub get
-flutter run \\
-  --dart-define=SUPABASE_URL=https://vfmgjrqmwnirbqbdbzdq.supabase.co \\
+flutter run \
+  --dart-define=SUPABASE_URL=https://vfmgjrqmwnirbqbdbzdq.supabase.co \
   --dart-define=SUPABASE_ANON_KEY=YOUR_PUSA_SUPABASE_PUBLISHABLE_KEY
 ```
 
@@ -42,15 +50,16 @@ Only the Supabase publishable key may be embedded in the client. Never use the s
 
 ## Database profile behaviour
 
-The Auth user creation trigger creates the matching `public.profiles` row and records the display name, signup email, and phone number. The database stores the phone and email on the profile, while Auth remains the authority for credentials and phone verification.
+The Auth user creation trigger creates the matching `public.profiles` row and copies the normalized email from `auth.users.email` (falling back to signup metadata only for compatibility). It also captures the display name and onboarding consent metadata. Auth remains the authority for credentials and verification.
 
-Profile row access is restricted by RLS to the owning authenticated user. The client can update only `display_name`; phone and email changes must use a dedicated verified account-change flow.
+Profile row access is restricted by RLS to the owning authenticated user. The client can update only `display_name`; email changes must use a dedicated verified account-change flow.
 
-Consent timestamps and the consent version are captured from the registration flow. The current consent labels are implementation placeholders; approved Terms of Service and Privacy Notice content must be published and reviewed before production onboarding.
+Consent timestamps and the consent version are captured from registration metadata. The current consent labels are implementation placeholders; approved Terms of Service and Privacy Notice content must be published and reviewed before production onboarding.
 
-## Current limitations
+## Security and release limitations
 
-- SMS provider setup is an external prerequisite and has not been confirmed.
-- Email verification and verified email-change flows are not included.
+- Never request or store Mobile Money PINs.
+- No deposits, withdrawals or live-money operations are enabled by this authentication work.
+- Email delivery is not production-ready until custom SMTP and sender verification are completed.
 - Account deletion/export requests and MFA are not yet implemented.
-- This release does not enable deposits, withdrawals or live balances.
+- Before accepting real customer funds, the operating, custody and regulatory arrangements must be approved.
