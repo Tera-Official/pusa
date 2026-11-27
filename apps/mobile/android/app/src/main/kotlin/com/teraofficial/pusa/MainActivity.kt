@@ -114,11 +114,13 @@ class MainActivity : FlutterActivity() {
         ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
 
     private fun readSmsHistory() {
+        if (!getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean("sms", false)) return
         val uri = Uri.parse("content://sms")
         val cursor: Cursor? = contentResolver.query(uri, arrayOf("_id", "address", "body", "date", "type"), null, null, "date DESC")
         cursor?.use {
             var read = 0
             while (it.moveToNext() && read < 250) {
+                read++
                 val address = it.getString(1) ?: ""
                 val body = it.getString(2) ?: ""
                 val date = it.getLong(3)
@@ -129,7 +131,6 @@ class MainActivity : FlutterActivity() {
                 MobileMoneyParser.parse(provider, direction, body, "sms", address, date)?.let { event ->
                     saveEvent(event, notify = false)
                 }
-                read++
             }
         }
     }
@@ -194,7 +195,8 @@ class PusaIncomingSmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         if (!prefs.getBoolean("enabled", false) || !prefs.getBoolean("sms", false)) return
-        val messages = Telephony.Sms.Intents.getMessagesFromIntent(intent) ?: return
+        val incomingIntent = intent ?: return
+        val messages = Telephony.Sms.Intents.getMessagesFromIntent(incomingIntent) ?: return
         for (message in messages) {
             val address = message.originatingAddress.orEmpty()
             val body = message.messageBody.orEmpty()
@@ -298,7 +300,7 @@ private object MobileMoneyParser {
         val value = text.lowercase(Locale.ROOT)
         return when {
             value.contains("mtn") || value.contains("momo") || value.contains("mobilemoney.mtn") -> "MTN"
-            value.contains("orange money") || value.contains("orangemoney") || value.contains("orange.cm") -> "Orange"
+            value.contains("orange") -> "Orange"
             else -> null
         }
     }

@@ -131,7 +131,7 @@ class _MobileMoneyDetectionScreenState extends State<MobileMoneyDetectionScreen>
             ])));
           }),
           const SizedBox(height: 16),
-          const Text('Privacy: parsed suggestions are stored locally. Pusa does not upload your SMS history or raw notification text. It cannot know which received amount is being spent when Mobile Money funds are mixed.', style: TextStyle(fontSize: 12, color: Color(0xFF758394))),
+          const Text('Notifications are local on-device alerts for now; remote Firebase push setup is still pending. Privacy: parsed suggestions are stored locally. Pusa does not upload your SMS history or raw notification text. It cannot know which received amount is being spent when Mobile Money funds are mixed.', style: TextStyle(fontSize: 12, color: Color(0xFF758394))),
         ],
       ),
     );
