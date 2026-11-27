@@ -44,9 +44,11 @@ class _MobileMoneyDetectionScreenState extends State<MobileMoneyDetectionScreen>
     }
   }
 
-  Future<void> _save() async => _channel.invokeMethod<bool>('setPreferences', {
-    'enabled': _enabled, 'mtn': _mtn, 'orange': _orange, 'sms': _sms,
-  });
+  Future<void> _save() async {
+    await _channel.invokeMethod<bool>('setPreferences', {
+      'enabled': _enabled, 'mtn': _mtn, 'orange': _orange, 'sms': _sms,
+    });
+  }
 
   Future<void> _toggleDetection(bool value) async {
     setState(() => _enabled = value); await _save();
