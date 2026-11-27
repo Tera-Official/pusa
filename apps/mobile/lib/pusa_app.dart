@@ -8,6 +8,7 @@ import 'screens/auth_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/pockets_screen.dart';
 import 'screens/profile_screen.dart';
+import 'screens/mobile_money_detection_screen.dart';
 
 class PusaApp extends StatelessWidget {
   const PusaApp({super.key, required this.backendConfigured});
@@ -111,6 +112,7 @@ class _PusaShellState extends State<PusaShell> {
       AllocationPlansScreen(backendConfigured: widget.backendConfigured),
       ActivityScreen(backendConfigured: widget.backendConfigured),
       ProfileScreen(backendConfigured: widget.backendConfigured),
+      const MobileMoneyDetectionScreen(),
     ];
     return Scaffold(
       body: SafeArea(child: IndexedStack(index: _index, children: pages)),
@@ -123,6 +125,7 @@ class _PusaShellState extends State<PusaShell> {
           NavigationDestination(icon: Icon(Icons.pie_chart_outline_rounded), label: 'Plans'),
           NavigationDestination(icon: Icon(Icons.receipt_long_outlined), label: 'Activity'),
           NavigationDestination(icon: Icon(Icons.person_outline_rounded), label: 'Profile'),
+          NavigationDestination(icon: Icon(Icons.notifications_active_outlined), label: 'Money alerts'),
         ],
       ),
     );
