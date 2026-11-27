@@ -243,12 +243,23 @@ private fun saveEvent(event: JSONObject, notify: Boolean) {
         } else if (event.optString("direction") == "outgoing") {
             val prior = JSONArray(prefs.getString(EVENTS_KEY, "[]"))
             val now = System.currentTimeMillis()
-            val ignoredReceipt = (0 until prior.length()).any { index ->
-                val candidate = prior.optJSONObject(index) ?: return@any false
-                candidate.optString("direction") == "incoming" && !candidate.optBoolean("reviewed") &&
-                    now - candidate.optLong("timestamp") in 0..(24 * 60 * 60 * 1000L)
+            var matchedIndex = -1
+            for (index in 0 until prior.length()) {
+                val candidate = prior.optJSONObject(index) ?: continue
+                val age = now - candidate.optLong("timestamp")
+                if (candidate.optString("direction") == "incoming" &&
+                    !candidate.optBoolean("reviewed") &&
+                    !candidate.optBoolean("spendNudgeSent") &&
+                    age in 0..(24 * 60 * 60 * 1000L)) {
+                    candidate.put("spendNudgeSent", true)
+                    matchedIndex = index
+                    break
+                }
             }
-            if (ignoredReceipt) showPusaNotification(context, "Saving reminder", "You may be using money received earlier. Want to review your allocation plan?")
+            if (matchedIndex >= 0) {
+                prefs.edit().putString(EVENTS_KEY, prior.toString()).apply()
+                showPusaNotification(context, "Saving reminder", "You may be using money received earlier. Want to review your allocation plan?")
+            }
         }
     }
 }
