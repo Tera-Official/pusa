@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'mobile_money_detection_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key, required this.backendConfigured});
@@ -114,6 +115,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: _saving ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save profile')),
           const SizedBox(height: 26),
           const Divider(),
+          ListTile(leading: const Icon(Icons.notifications_active_outlined), title: const Text('Mobile Money detection'), subtitle: const Text('Manage Orange Money, MTN MoMo and saving reminders'), onTap: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const MobileMoneyDetectionScreen()))),
           const ListTile(leading: Icon(Icons.lock_outline), title: Text('Password & account recovery'),
             subtitle: Text('Use Forgot password on the sign-in screen to reset your password.')),
           ListTile(leading: const Icon(Icons.logout_rounded, color: Colors.red),

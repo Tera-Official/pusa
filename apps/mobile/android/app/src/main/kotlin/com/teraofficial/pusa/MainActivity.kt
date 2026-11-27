@@ -150,6 +150,7 @@ class MainActivity : FlutterActivity() {
             if (item.optString("id") == id) item.put("reviewed", true)
         }
         getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(EVENTS_KEY, array.toString()).apply()
+        cancelReminder(this, id)
     }
 
     private fun clearReviewedEvents() {
@@ -209,7 +210,13 @@ class PusaMoneyReminderReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         val provider = intent?.getStringExtra("provider") ?: "Mobile Money"
         val amount = intent?.getLongExtra("amount", 0L) ?: 0L
-        showPusaNotification(context, "A saving reminder", "You received ${amount} XAF earlier. Would you like to review your allocation plan?")
+        val eventId = intent?.getStringExtra("eventId") ?: return
+        val stored = JSONArray(context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString(EVENTS_KEY, "[]"))
+        for (i in 0 until stored.length()) {
+            val event = stored.optJSONObject(i) ?: continue
+            if (event.optString("id") == eventId && event.optBoolean("reviewed")) return
+        }
+        showPusaNotification(context, "A saving reminder", "You received " + amount + " XAF earlier. Would you like to review your allocation plan?")
     }
 }
 
@@ -232,7 +239,14 @@ private fun saveEvent(event: JSONObject, notify: Boolean) {
             showPusaNotification(context, "Money received detected", "You may have received ${amount} XAF via $provider. Want to split it in Pusa?")
             scheduleReminder(context, event)
         } else if (event.optString("direction") == "outgoing") {
-            showPusaNotification(context, "Mobile Money spending detected", "A payment may have been made via $provider. Review your savings plan in Pusa.")
+            val prior = JSONArray(prefs.getString(EVENTS_KEY, "[]"))
+            val now = System.currentTimeMillis()
+            val ignoredReceipt = (0 until prior.length()).any { index ->
+                val candidate = prior.optJSONObject(index) ?: return@any false
+                candidate.optString("direction") == "incoming" && !candidate.optBoolean("reviewed") &&
+                    now - candidate.optLong("timestamp") in 0..(24 * 60 * 60 * 1000L)
+            }
+            if (ignoredReceipt) showPusaNotification(context, "Saving reminder", "You may be using money received earlier. Want to review your allocation plan?")
         }
     }
 }
@@ -241,11 +255,21 @@ private fun scheduleReminder(context: Context, event: JSONObject) {
     val intent = Intent(context, PusaMoneyReminderReceiver::class.java).apply {
         putExtra("provider", event.optString("provider"))
         putExtra("amount", event.optLong("amountXaf"))
+        putExtra("eventId", event.optString("id"))
     }
     val id = event.optString("id").hashCode()
     val pending = PendingIntent.getBroadcast(context, id, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
     val alarm = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, System.currentTimeMillis() + 60 * 60 * 1000L, pending)
+}
+
+private fun cancelReminder(context: Context, eventId: String) {
+    val intent = Intent(context, PusaMoneyReminderReceiver::class.java).putExtra("eventId", eventId)
+    val pending = PendingIntent.getBroadcast(context, eventId.hashCode(), intent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE)
+    if (pending != null) {
+        (context.getSystemService(Context.ALARM_SERVICE) as AlarmManager).cancel(pending)
+        pending.cancel()
+    }
 }
 
 private fun showPusaNotification(context: Context, title: String, body: String) {

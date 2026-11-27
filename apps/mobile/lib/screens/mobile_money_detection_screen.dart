@@ -7,7 +7,7 @@ class MobileMoneyDetectionScreen extends StatefulWidget {
   State<MobileMoneyDetectionScreen> createState() => _MobileMoneyDetectionScreenState();
 }
 
-class _MobileMoneyDetectionScreenState extends State<MobileMoneyDetectionScreen> {
+class _MobileMoneyDetectionScreenState extends State<MobileMoneyDetectionScreen> with WidgetsBindingObserver {
   static const _channel = MethodChannel('pusa/mobile_money');
   bool _enabled = false, _mtn = true, _orange = true, _sms = false;
   bool _notificationAccess = false, _smsPermission = false, _loading = true;
@@ -15,7 +15,15 @@ class _MobileMoneyDetectionScreenState extends State<MobileMoneyDetectionScreen>
   List<Map<String, dynamic>> _events = [];
 
   @override
-  void initState() { super.initState(); _refresh(); }
+  void initState() { super.initState(); WidgetsBinding.instance.addObserver(this); _refresh(); }
+
+  @override
+  void dispose() { WidgetsBinding.instance.removeObserver(this); super.dispose(); }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _refresh();
+  }
 
   Future<void> _refresh() async {
     try {
@@ -51,13 +59,13 @@ class _MobileMoneyDetectionScreenState extends State<MobileMoneyDetectionScreen>
   }
 
   Future<void> _toggleSms(bool value) async {
+    setState(() => _sms = value);
+    await _save();
     if (value && !_smsPermission) {
       await _channel.invokeMethod<bool>('requestSmsPermission');
       setState(() => _message = 'Grant SMS access in Android if you want to scan provider confirmations. Notification detection works separately.');
-      await Future<void>.delayed(const Duration(milliseconds: 700));
-      await _refresh();
     }
-    setState(() => _sms = value && _smsPermission); await _save();
+    await _refresh();
   }
 
   Future<void> _scanSms() async {
